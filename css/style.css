@@ -485,3 +485,7 @@ h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var
 .starter-grid button { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 6px; display: flex; flex-direction: column; align-items: center; font-weight: 700; font-size: 11px; }
 .starter-grid button img { width: 72px; height: 72px; image-rendering: pixelated; }
 .starter-grid button.focus, .starter-grid button:active { border-color: var(--accent); background: #eff6ff; }
+
+/* where-you-caught-it markers */
+.catch-icon img { width: 36px; height: 36px; image-rendering: pixelated; opacity: .85; filter: drop-shadow(0 0 2px #fff) drop-shadow(0 2px 2px rgba(0,0,0,.4)); }
+.stop-icon div { font-size: 14px; }

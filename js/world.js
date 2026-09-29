@@ -3,7 +3,7 @@
 // Pokémon, like the real game, but nothing talks to anyone's servers.
 import { DEX, stage } from './data.js';
 import { hash, rng, weightedPick, distM } from './util.js';
-import { S, trainerLevel } from './store.js';
+import { S, trainerLevel, emit } from './store.js';
 
 const CELL = 0.0012;                 // ~130 m cells
 const WINDOW_MS = 15 * 60 * 1000;    // spawns rotate every 15 minutes
@@ -103,7 +103,109 @@ export function spawnsNear(pos, t = Date.now()) {
   return out.sort((a, b) => a.dist - b.dist);
 }
 
+// ---- stops at real places (OpenStreetMap via the free Overpass API) ----
+// Landmarks around you (art, statues, churches, fountains, libraries, parks,
+// cafés…) become stops, like the real game. Fetched per ~1 km tile, cached on
+// the device; if offline or nothing is mapped nearby, generated stops are used.
+const POI_TILE = 0.01;
+const POI_CACHE_KEY = 'pokedex-poi-v1';
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+let poiCache = null;
+const poiLoading = new Set();
+
+function loadPoiCache() {
+  if (poiCache) return poiCache;
+  try { poiCache = JSON.parse(localStorage.getItem(POI_CACHE_KEY)) || {}; } catch { poiCache = {}; }
+  return poiCache;
+}
+
+function savePoiCache() {
+  const keys = Object.keys(poiCache);
+  // keep the 40 most recent tiles
+  if (keys.length > 40) keys.sort((a, b) => poiCache[a].t - poiCache[b].t).slice(0, keys.length - 40).forEach(k => delete poiCache[k]);
+  try { localStorage.setItem(POI_CACHE_KEY, JSON.stringify(poiCache)); } catch { /* full */ }
+}
+
+const poiTileKey = (lat, lng) => `${Math.floor(lat / POI_TILE)}:${Math.floor(lng / POI_TILE)}`;
+
+function describe(tags) {
+  if (tags.tourism === 'artwork') return '🎨';
+  if (tags.historic) return '🏛️';
+  if (tags.amenity === 'place_of_worship') return '⛪';
+  if (tags.amenity === 'fountain') return '⛲';
+  if (tags.amenity === 'library') return '📚';
+  if (tags.leisure === 'playground') return '🛝';
+  if (tags.leisure === 'park') return '🌳';
+  if (tags.amenity === 'cafe') return '☕';
+  if (tags.tourism) return '📸';
+  return '◆';
+}
+
+// Overpass allows ~2 concurrent requests per user, so tiles load one at a time.
+let poiQueue = Promise.resolve();
+const poiFailedAt = {};
+function fetchPoiTile(key) {
+  if (poiLoading.has(key) || Date.now() - (poiFailedAt[key] || 0) < 60000) return;
+  poiLoading.add(key);
+  poiQueue = poiQueue.then(() => loadPoiTile(key));
+}
+
+async function loadPoiTile(key) {
+  const [ty, tx] = key.split(':').map(Number);
+  const bbox = `${ty * POI_TILE},${tx * POI_TILE},${(ty + 1) * POI_TILE},${(tx + 1) * POI_TILE}`;
+  const q = `[out:json][timeout:20];(
+    node(${bbox})[tourism~"^(artwork|museum|attraction|viewpoint|gallery)$"];
+    node(${bbox})[historic][name];
+    node(${bbox})[amenity~"^(place_of_worship|library|fountain|townhall|arts_centre|theatre|community_centre|cafe|post_office)$"][name];
+    nwr(${bbox})[leisure~"^(park|playground|sports_centre)$"][name];
+  );out center 400;`;
+  try {
+    let data = null;
+    for (const endpoint of OVERPASS) {
+      try {
+        const res = await fetch(endpoint, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+        if (res.ok) { data = await res.json(); break; }
+      } catch { /* try the next mirror */ }
+    }
+    if (!data) throw new Error('overpass unavailable');
+    const pois = [];
+    for (const el of data.elements) {
+      const lat = el.lat ?? el.center?.lat, lng = el.lon ?? el.center?.lon;
+      if (lat == null) continue;
+      // keep stops at least ~40 m apart so dense downtowns aren't wall-to-wall
+      const name = el.tags?.name || el.tags?.artwork_type || 'Landmark';
+      // big parks come back as several pieces: one stop per name per area
+      if (pois.some(p => distM(p, { lat, lng }) < 40 || (p.name === name && distM(p, { lat, lng }) < 600))) continue;
+      pois.push({ key: `osm:${el.type[0]}${el.id}`, lat, lng, name, icon: describe(el.tags || {}) });
+    }
+    loadPoiCache()[key] = { t: Date.now(), pois };
+    savePoiCache();
+    emit('geo');
+  } catch {
+    // offline / overloaded: generated stops cover this area; retry in a minute
+    poiFailedAt[key] = Date.now();
+  } finally {
+    poiLoading.delete(key);
+  }
+}
+
 export function stopsNear(pos) {
+  const cache = loadPoiCache();
+  const keys = new Set();
+  for (const dy of [-1, 0, 1]) for (const dx of [-1, 0, 1]) keys.add(poiTileKey(pos.lat + dy * POI_TILE * 0.5, pos.lng + dx * POI_TILE * 0.5));
+  let have = true;
+  const real = [];
+  for (const k of keys) {
+    const tile = cache[k];
+    if (!tile || Date.now() - tile.t > 7 * 864e5) { fetchPoiTile(k); if (!tile) have = false; }
+    if (tile) real.push(...tile.pois);
+  }
+  const near = real.map(p => ({ ...p, dist: distM(pos, p) })).filter(p => p.dist <= VIEW_RADIUS_M);
+  if (near.length >= 3 || (have && near.length)) return near;
+  return generatedStops(pos).concat(near);
+}
+
+function generatedStops(pos) {
   const span = Math.ceil(VIEW_RADIUS_M / 130) + 1;
   const cy0 = cellY(pos.lat);
   const out = [];

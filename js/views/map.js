@@ -9,7 +9,7 @@ import { toast, ticker, pulseLens } from '../ui.js';
 
 export default function mapView(app) {
   let map, layer, me, rangeCircle, hudEl, nearbyEl, msgEl, wrap;
-  let spawns = [], stops = [], focus = 0, follow = true, refreshT = 0;
+  let spawns = [], stops = [], focus = 0, follow = true, refreshT = 0, showCatches = false;
   const inRangeSeen = new Set();
 
   function mount(el) {
@@ -20,6 +20,12 @@ export default function mapView(app) {
       h('button', { title: 'Center on me', onclick: () => { follow = true; if (!st.S().settings.deskMode) recenterToGps(); center(true); } }, '🎯'),
       h('button', { title: 'Zoom in', onclick: () => map?.zoomIn() }, '＋'),
       h('button', { title: 'Zoom out', onclick: () => map?.zoomOut() }, '－'),
+      h('button', { title: 'Where I caught my Pokémon', onclick: e => {
+        showCatches = !showCatches;
+        e.currentTarget.style.background = showCatches ? '#dbeafe' : '';
+        toast(showCatches ? '📍 Showing where you caught each Pokémon' : 'Catch spots hidden');
+        update();
+      } }, '📍'),
     );
     const mapEl = h('div#map');
     wrap = h('div.map-wrap', mapEl, hudEl, btns, nearbyEl);
@@ -94,10 +100,20 @@ export default function mapView(app) {
       layer.clearLayers();
       for (const stop of stops) {
         const ready = stopReady(stop);
-        L.marker([stop.lat, stop.lng], {
-          icon: L.divIcon({ className: 'stop-icon' + (ready ? '' : ' spun'), html: '<div>◆</div>', iconSize: [30, 30] }),
+        const mk = L.marker([stop.lat, stop.lng], {
+          icon: L.divIcon({ className: 'stop-icon' + (ready ? '' : ' spun'), html: `<div>${stop.icon || '◆'}</div>`, iconSize: [30, 30] }),
           zIndexOffset: -100,
         }).on('click', () => spin(stop)).addTo(layer);
+        if (stop.name) mk.bindTooltip(stop.name, { direction: 'top', offset: [0, -14] });
+      }
+      if (showCatches) {
+        for (const m of st.S().mons) {
+          if (!m.where) continue;
+          L.marker([m.where.lat, m.where.lng], {
+            icon: L.divIcon({ className: 'catch-icon', html: `<img src="${spriteUrl(m.id, m.shiny)}" alt="">`, iconSize: [36, 36], iconAnchor: [18, 30] }),
+            zIndexOffset: -200,
+          }).bindTooltip(`${st.monName(m)} · caught ${new Date(m.got).toLocaleDateString()}`, { direction: 'top' }).addTo(layer);
+        }
       }
       for (const sp of spawns) {
         const far = sp.dist > CATCH_RANGE_M && !desk;
@@ -161,7 +177,7 @@ export default function mapView(app) {
     st.addTrainerXp(50);
     st.emit();
     vibrate([40, 40, 40]);
-    toast('◆ ' + got.map(([n, c]) => `${n} x${c}`).join(', '), 4000);
+    toast(`${stop.icon || '◆'} ${stop.name ? stop.name + ': ' : ''}` + got.map(([n, c]) => `${n} x${c}`).join(', '), 4500);
     update();
   }
 

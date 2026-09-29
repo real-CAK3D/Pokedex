@@ -1,6 +1,6 @@
 // Offline support: app shell is cached on install; sprites, item icons and
 // map tiles are cached as you see them, so the Pokédex works offline.
-const VERSION = 'v6';
+const VERSION = 'v7';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = 'runtime-v1';
 const SHELL_FILES = [
