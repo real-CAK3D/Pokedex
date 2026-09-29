@@ -6,7 +6,7 @@ const ENDPOINT = 'https://beta.pokeapi.co/graphql/v1beta';
 const QUERY = `{
   pokemon_v2_pokemonspecies(order_by:{id:asc}) {
     id name capture_rate is_legendary is_mythical is_baby generation_id
-    evolves_from_species_id hatch_counter
+    evolves_from_species_id hatch_counter growth_rate_id
     pokemon_v2_pokemonevolutions { min_level evolution_trigger_id evolution_item_id min_happiness }
     pokemon_v2_pokemons(where:{is_default:{_eq:true}}) {
       height weight
@@ -57,6 +57,7 @@ const out = data.pokemon_v2_pokemonspecies.map(s => {
     text: (s.pokemon_v2_pokemonspeciesflavortexts[0]?.flavor_text || '').replace(/[\n\f­]+/g, ' '),
     h: p.height, w: p.weight,
     hatch: s.hatch_counter,
+    g: s.growth_rate_id,
   };
 });
 

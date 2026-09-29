@@ -25,7 +25,7 @@
     <div class="hinge"><i></i><i></i></div>
 
     <header class="top">
-      <button class="lens" id="lens" aria-label="Scan nearby"><span class="glare"></span></button>
+      <button class="lens" id="lens" aria-label="Camera"><span class="glare"></span></button>
       <div class="leds">
         <i class="led red" id="led-care" title="Buddy needs care"></i>
         <i class="led yellow" id="led-egg" title="Egg ready to hatch"></i>
@@ -47,18 +47,15 @@
       </div>
       <div class="bezel-foot">
         <i class="bezel-led" id="bezel-led"></i>
-        <div class="speaker"><i></i><i></i><i></i><i></i></div>
+        <button class="speaker" id="menu-btn" aria-label="Menu"><i></i><i></i><i></i><i></i></button>
       </div>
     </div>
 
     <div class="controls">
-      <nav class="tabs" id="tabs">
-        <button data-tab="pet">PET</button>
-        <button data-tab="dex">DEX</button>
-        <button data-tab="map">MAP</button>
-        <button data-tab="box">BOX</button>
-        <button data-tab="bag">BAG</button>
-      </nav>
+      <div class="pills">
+        <button data-key="select">SELECT</button>
+        <button data-key="start">START</button>
+      </div>
       <div class="pad-row">
         <div class="dpad" id="dpad">
           <button data-key="up" aria-label="Up"></button>

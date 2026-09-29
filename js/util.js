@@ -81,7 +81,17 @@ export function distM(a, b) {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+// Compass bearing from a to b, degrees clockwise from north.
+export function bearing(a, b) {
+  const rad = Math.PI / 180;
+  const y = Math.sin((b.lng - a.lng) * rad) * Math.cos(b.lat * rad);
+  const x = Math.cos(a.lat * rad) * Math.sin(b.lat * rad) - Math.sin(a.lat * rad) * Math.cos(b.lat * rad) * Math.cos((b.lng - a.lng) * rad);
+  return (Math.atan2(y, x) / rad + 360) % 360;
+}
+
+export const angleDiff = (a, b) => ((a - b + 540) % 360) - 180;
+
+export const uid =() => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites';
 export const spriteUrl = (id, shiny) => `${SPRITES}/pokemon/${shiny ? 'shiny/' : ''}${id}.png`;

@@ -122,8 +122,20 @@ img { image-rendering: auto; }
 .bezel-foot { position: absolute; left: 16px; right: 16px; bottom: 6px; height: 20px; display: flex; align-items: center; justify-content: space-between; }
 .bezel-led { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff8080, #c00); border: 2px solid #600; }
 .bezel-led.flash { animation: blink .25s steps(2) 6; }
-.speaker { display: flex; flex-direction: column; gap: 3px; }
-.speaker i { display: block; width: 34px; height: 2px; background: #555; border-radius: 2px; }
+/* the 4-bar speaker grille doubles as the menu button */
+.speaker { display: flex; flex-direction: column; gap: 3px; padding: 4px 3px; margin: -4px -3px; border-radius: 4px; position: relative; }
+.speaker i { display: block; width: 34px; height: 2px; background: #555; border-radius: 2px; transition: background .2s; }
+.speaker:active i, .speaker.open i { background: #1667c7; }
+.speaker.notify::after { content: ''; position: absolute; top: -2px; right: -4px; width: 7px; height: 7px; border-radius: 50%; background: #ffe23b; box-shadow: 0 0 6px #f0b400; border: 1px solid #a37800; }
+.menu-sheet { position: absolute; right: 6px; bottom: 6px; z-index: 960; width: calc(100% - 12px); max-width: 320px; background: #1d2230; border-radius: 12px; padding: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.45); animation: slideUp .2s ease-out; transform-origin: bottom right; }
+.menu-sheet button { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; color: #e6f0ff; font-weight: 800; font-size: 13px; letter-spacing: 1px; text-align: left; }
+.menu-sheet button .ic { font-size: 18px; width: 22px; text-align: center; }
+.menu-sheet button small { margin-left: auto; font-family: var(--pixel); font-size: 7px; color: #7f8aa3; }
+.menu-sheet button.active { background: #1667c7; }
+.menu-sheet button.focus { outline: 2px solid #4aa8ff; }
+.menu-sheet button .dot { width: 7px; height: 7px; border-radius: 50%; background: #ffe23b; box-shadow: 0 0 6px #ffe23b; }
+.menu-back { position: absolute; inset: 0; z-index: 955; }
+#sb-title { cursor: pointer; }
 
 .screen {
   flex: 1 1 auto; min-height: 0; position: relative;
@@ -147,16 +159,14 @@ img { image-rendering: auto; }
 
 /* ---- controls ---- */
 .controls { flex: none; padding-top: 12px; }
-.tabs { display: flex; gap: 6px; justify-content: space-between; }
-.tabs button {
-  flex: 1; height: 26px; border-radius: 13px;
-  font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #fff;
+.pills { display: flex; gap: 18px; justify-content: center; }
+.pills button {
+  width: 92px; height: 24px; border-radius: 12px;
+  font-size: 9px; font-weight: 800; letter-spacing: 1.5px; color: rgba(255,255,255,.75);
   background: linear-gradient(180deg, #3a3a3a, #1a1a1a);
   box-shadow: 0 3px 0 #000, inset 0 1px 0 rgba(255,255,255,.2);
 }
-.tabs button:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
-.tabs button.active { background: linear-gradient(180deg, #4aa8ff, #1667c7); box-shadow: 0 3px 0 #0b3a78, 0 0 10px rgba(74,168,255,.6); }
-.tabs button.notify::after { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ffe23b; margin-left: 4px; vertical-align: middle; box-shadow: 0 0 6px #ffe23b; }
+.pills button:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
 
 .pad-row { display: grid; grid-template-columns: 104px 1fr 96px; gap: 10px; align-items: center; margin-top: 14px; }
 .dpad { position: relative; width: 104px; height: 104px; display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); filter: drop-shadow(0 4px 0 rgba(0,0,0,.45)); }
@@ -200,6 +210,39 @@ img { image-rendering: auto; }
   .ab button { width: 42px; height: 42px; }
   .lcd { height: 52px; }
 }
+
+/* CAMERA (AR scanner) */
+.ar { flex: 1; display: flex; min-height: 0; }
+.ar-stage { position: relative; flex: 1; overflow: hidden; touch-action: none; background: #000; cursor: grab; }
+.cam-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ar-stage.live .ar-fake { display: none; }
+.ar-fake { position: absolute; inset: 0; background:
+  linear-gradient(180deg, transparent 0 55%, #6fbf4f 55%, #4e9e38 100%),
+  repeating-linear-gradient(90deg, #9fd6ff 0 120px, #b5e0ff 120px 240px); }
+.ar-fake.night { filter: brightness(.5) saturate(.8); }
+.ar-decor { position: absolute; top: 44%; font-size: 44px; transform: translateX(-50%); pointer-events: none; filter: drop-shadow(0 4px 2px rgba(0,0,0,.25)); }
+.ar-layer { position: absolute; inset: 0; }
+.ar-mon { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; transform-origin: 50% 100%; will-change: transform; }
+.ar-mon img { width: 88px; height: 88px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 6px 4px rgba(0,0,0,.45)); }
+.ar-mon .ar-shadow { position: absolute; bottom: 14px; width: 60px; height: 12px; border-radius: 50%; background: rgba(0,0,0,.3); }
+.ar-mon .ar-tag { font-size: 9px; font-weight: 800; color: #fff; background: rgba(0,0,0,.55); padding: 2px 6px; border-radius: 8px; white-space: nowrap; }
+.ar-mon.far img { opacity: .7; }
+.ar-mon.aim .ar-tag { background: #1667c7; box-shadow: 0 0 8px rgba(74,168,255,.8); }
+.ar-reticle { position: absolute; left: 50%; top: 50%; width: 70px; height: 70px; transform: translate(-50%, -50%); border: 2px dashed rgba(255,255,255,.7); border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
+.ar-hud { position: absolute; left: 6px; right: 6px; top: 6px; font-family: var(--pixel); font-size: 7px; color: #fff; background: rgba(0,0,0,.45); padding: 6px 8px; border-radius: 8px; pointer-events: none; text-align: center; }
+.ar-edge { position: absolute; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 800; color: #fff; background: rgba(215,38,61,.85); padding: 4px 6px; border-radius: 8px; pointer-events: none; }
+.ar-edge:empty { display: none; }
+.ar-edge.left { left: 4px; }
+.ar-edge.right { right: 4px; }
+.enc.ar-on .enc-bg { display: none; }
+.enc.ar-on .cam-video { z-index: 0; }
+
+/* GAME tab: the game sits centred on a dark "LCD" at its native aspect */
+.game-stage { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 40%, #2a3040, #10131b); overflow: hidden; }
+b.small { font-size: 13px; line-height: 1.25; display: block; }
+
+/* in-game control strip (GAME tab) */
+.game-bar { flex: none; display: flex; gap: 6px; padding: 5px; background: #1d2230; justify-content: center; }
 
 /* ============ shared screen UI ============ */
 .scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }

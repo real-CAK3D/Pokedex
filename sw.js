@@ -1,13 +1,14 @@
 // Offline support: app shell is cached on install; sprites, item icons and
 // map tiles are cached as you see them, so the Pokédex works offline.
-const VERSION = 'v1';
+const VERSION = 'v3';
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = 'runtime-v1';
 const SHELL_FILES = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest', 'data/pokedex.json',
   'js/app.js', 'js/util.js', 'js/data.js', 'js/store.js', 'js/world.js', 'js/geo.js', 'js/ui.js',
   'js/views/pet.js', 'js/views/dex.js', 'js/views/map.js', 'js/views/box.js', 'js/views/bag.js',
-  'js/views/starter.js', 'js/views/encounter.js', 'img/icon.svg', 'img/icon-192.png', 'img/icon-512.png',
+  'js/views/starter.js', 'js/views/encounter.js', 'js/views/game.js', 'js/cart.js', 'js/camera.js', 'js/views/cam.js','js/gamedb.js', 'games/player.html',
+'img/icon.svg', 'img/icon-192.png', 'img/icon-512.png',
 ];
 
 self.addEventListener('install', e => {
@@ -36,7 +37,7 @@ self.addEventListener('fetch', e => {
   }
 
   // sprites / tiles / fonts / leaflet: cache first
-  if (/raw\.githubusercontent\.com|tile\.openstreetmap\.org|cdnjs\.cloudflare\.com|fonts\.(googleapis|gstatic)\.com/.test(url.host)) {
+  if (/raw\.githubusercontent\.com|tile\.openstreetmap\.org|cdnjs\.cloudflare\.com|cdn\.emulatorjs\.org|fonts\.(googleapis|gstatic)\.com/.test(url.host)) {
     e.respondWith(caches.open(RUNTIME).then(async c => {
       const hit = await c.match(req);
       if (hit) return hit;

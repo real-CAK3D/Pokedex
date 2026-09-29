@@ -6,6 +6,7 @@ import * as st from '../store.js';
 import { isNight } from '../world.js';
 import { geo } from '../geo.js';
 import { toast, ticker, flashLed } from '../ui.js';
+import { acquireCamera, releaseCamera, videoFor } from '../camera.js';
 
 const BALLS = [
   { key: 'poke', item: 'poke-ball', name: 'Poké Ball' },
@@ -13,7 +14,7 @@ const BALLS = [
   { key: 'ultra', item: 'ultra-ball', name: 'Ultra Ball' },
 ];
 
-export function openEncounter(host, spawn, onDone) {
+export function openEncounter(host, spawn, onDone, opts = {}) {
   const s = byId(spawn.id);
   const bag = st.S().bag;
   spawn.level ||= st.wildLevel(spawn.id);
@@ -34,14 +35,43 @@ export function openEncounter(host, spawn, onDone) {
   const ballBtn = h('button.itm.on', { onclick: cycleBall });
   const berryBtn = h('button.itm', { onclick: toggleBerry });
   const runBtn = h('button.itm', { onclick: () => close() }, '🏃 Run');
+  const arBtn = h('button.itm', { onclick: () => setAR(!arOn) }, '📷 AR');
+  const bg = h('div.enc-bg' + (isNight() ? '.night' : ''));
   const root = h('div.enc',
-    h('div.enc-bg' + (isNight() ? '.night' : '')),
+    bg,
     h('div.enc-top',
       h('div.enc-name', (spawn.shiny ? '✨ ' : '') + s.name, h('small', `Lv${spawn.level}`), st.S().dex.caught[spawn.id] ? ' ◓' : ''),
       firstSeen ? h('div.enc-name', { style: { fontSize: '10px' } }, 'NEW!') : null),
     monWrap, outer, inner, msg, hint, held,
-    h('div.enc-bottom', ballBtn, berryBtn, runBtn),
+    h('div.enc-bottom', ballBtn, berryBtn, arBtn, runBtn),
   );
+
+  // AR: the live camera replaces the grass backdrop, so the Pokémon looks
+  // like it's standing right there in front of you.
+  let arOn = false, video = null;
+  async function setAR(on) {
+    if (on === arOn) return;
+    if (on) {
+      try {
+        const s = await acquireCamera();
+        if (api.closed) { releaseCamera(); return; }
+        video = videoFor(s);
+        root.prepend(video);
+        root.classList.add('ar-on');
+        arOn = true;
+      } catch (e) {
+        toast('Camera unavailable: ' + (e.name || e.message));
+      }
+    } else {
+      video?.remove();
+      video = null;
+      root.classList.remove('ar-on');
+      releaseCamera();
+      arOn = false;
+    }
+    arBtn.classList.toggle('on', arOn);
+    st.S().settings.arCatch = arOn;
+  }
   host.replaceChildren(root);
   host.hidden = false;
   paintItems();
@@ -238,6 +268,7 @@ export function openEncounter(host, spawn, onDone) {
 
   function close(goTo) {
     cancelAnimationFrame(ringRaf);
+    if (arOn) setAR(false);
     host.hidden = true;
     host.replaceChildren();
     api.closed = true;
@@ -259,5 +290,6 @@ export function openEncounter(host, spawn, onDone) {
     },
     close,
   };
+  if (opts.ar || st.S().settings.arCatch) setAR(true);
   return api;
 }

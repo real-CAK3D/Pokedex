@@ -382,7 +382,7 @@ export function evoTargets(m) {
 }
 
 export function canEvolve(m) {
-  if (m.sleeping) return false;
+  if (m.sleeping || m.link) return false; // linked Pokémon evolve in their own game
   if (Math.min(m.food, m.joy, m.energy, m.hygiene) < 40) return false;
   return evoTargets(m).length > 0 && monLevel(m.xp) > m.evoDeclinedLv;
 }
@@ -505,6 +505,75 @@ export function catchMon(spawn, where) {
   log(`Caught ${spawn.shiny ? 'a shiny ' : ''}${byId(spawn.id).name}!`);
   emit();
   return { mon, isNew };
+}
+
+// ---------------------------------------------------------------- cartridge sync
+// Merge a parsed Game Boy save (see cart.js): its Pokédex marks become ours,
+// and its party comes over as Pokémon you can raise here. Re-syncing the same
+// party updates those Pokémon (evolved / levelled) instead of duplicating.
+export function syncCartridge(save, gameName) {
+  state.imported ||= {};
+  let newCaught = 0, newSeen = 0, newMons = 0;
+  for (const id of save.seen) if (markSeen(id)) newSeen++;
+  for (const id of save.owned) {
+    if (!state.dex.caught[id]) {
+      state.dex.caught[id] = 1;
+      newCaught++;
+    }
+  }
+  for (const p of save.party) {
+    const key = `${save.layout}:${p.key}`;
+    const existing = getMon(state.imported[key]);
+    if (existing) {
+      if (existing.id !== p.id) registerCaught(p.id, p.shiny);
+      existing.id = p.id;
+      // levels gained in-game aren't "care", so move the baseline up with them
+      const before = existing.xp;
+      existing.xp = Math.max(existing.xp, xpForLevel(p.level));
+      existing.linkedXp = (existing.linkedXp ?? before) + (existing.xp - before);
+      existing.gameLevel = p.level;
+      continue;
+    }
+    const mon = makeMon(p.id, { shiny: p.shiny, level: p.level, origin: gameName });
+    mon.link = { key, game: gameName };
+    mon.linkedXp = mon.xp;
+    mon.gameLevel = p.level;
+    if (p.nick && p.nick.toUpperCase() !== byId(p.id).name.toUpperCase()) mon.nick = p.nick.slice(0, 12);
+    mon.bond = 30;
+    state.mons.push(mon);
+    registerCaught(p.id, p.shiny);
+    state.imported[key] = mon.uid;
+    newMons++;
+  }
+  if (newCaught) addTrainerXp(newCaught * 100);
+  if (newCaught || newSeen || newMons) log(`Synced ${gameName}: +${newCaught} caught, +${newSeen} seen, ${newMons} Pokémon transferred.`);
+  emit();
+  return { newCaught, newSeen, newMons };
+}
+
+// Care earned in the Pokédex since the last hand-off, as in-game EXP (and Gen 2
+// happiness from bond). Used by cart.applyCare when a game is launched.
+export const CARE_EXP_RATE = 2;
+const careHandedOff = new Map(); // uid -> care object (applyCare fills in .used)
+export function careFor(key) {
+  const m = getMon(state.imported?.[key]);
+  if (!m) return null;
+  const delta = m.xp - (m.linkedXp ?? m.xp);
+  const care = { exp: delta * CARE_EXP_RATE, happiness: Math.round(m.bond * 2.55) };
+  careHandedOff.set(m.uid, care);
+  return care;
+}
+// Only the EXP the game actually took is spent; the rest stays pending.
+export function commitCare() {
+  for (const [u, care] of careHandedOff) {
+    const m = getMon(u);
+    if (m && care.used) m.linkedXp = Math.min(m.xp, (m.linkedXp ?? m.xp) + Math.ceil(care.used / CARE_EXP_RATE));
+  }
+  careHandedOff.clear();
+  emit();
+}
+export function pendingCareExp(m) {
+  return m.link ? Math.max(0, (m.xp - (m.linkedXp ?? m.xp)) * CARE_EXP_RATE) : 0;
 }
 
 // prune old spawn/stop bookkeeping so the save doesn't grow forever
