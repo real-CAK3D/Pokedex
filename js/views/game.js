@@ -75,8 +75,11 @@ export default function gameView(app) {
       const res = await fetch(base + 'index.json', { mode: 'cors', cache: 'no-store' });
       list = await res.json();
     } catch {
-      box.replaceChildren(h('div.tiny.muted', `Can't reach ${new URL(base).host}. Is the PC on and Tailscale connected on both devices?`),
-        h('button.btn.alt.sm', { onclick: () => renderShelf(box, installed) }, '↻ Retry'));
+      box.replaceChildren(
+        h('div.tiny.muted', `Can't reach ${new URL(base).host}. Check the PC is on and Tailscale is connected on both devices. If the browser asked about local network access, allow it. Or download from the shelf page and use “Add game”.`),
+        h('div.row',
+          h('button.btn.alt.sm', { onclick: () => renderShelf(box, installed) }, '↻ Retry'),
+          h('a.btn.sm', { href: base, target: '_blank', rel: 'noopener' }, '🌐 Open shelf page')));
       return;
     }
     const rows = list.map(g => {
