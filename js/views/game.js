@@ -6,7 +6,7 @@ import * as st from '../store.js';
 import { SYSTEMS, systemFor, listRoms, getRom, addRom, deleteRom, unzipRom, getSave, putSave } from '../gamedb.js';
 import { parseSave, applyCare } from '../cart.js';
 import { byId } from '../data.js';
-import { toast, ticker, confirm, flashLed } from '../ui.js';
+import { toast, ticker, confirm, flashLed, dialog, closeDialog } from '../ui.js';
 
 // RetroArch joypad ids
 const PAD = { b: 0, select: 2, start: 3, up: 4, down: 5, left: 6, right: 7, a: 8, l: 10, r: 11 };
@@ -34,6 +34,24 @@ export default function gameView(app) {
       if (!u.pathname.endsWith('/')) u.pathname += '/';
       localStorage.setItem(SHELF_KEY, u.href);
     } catch { toast('Bad shelf link'); }
+  }
+
+  function connectShelf() {
+    const input = h('input.input', { type: 'url', placeholder: 'https://my-pc.tailnet.ts.net:8443/', value: getShelf() || '' });
+    dialog(h('form.col', { onsubmit: e => {
+      e.preventDefault();
+      if (!input.value.trim()) return;
+      setShelf(input.value.trim());
+      closeDialog();
+      library();
+    } },
+      h('b', 'PC shelf address'),
+      h('div.tiny.muted', 'The address of a folder of your own games shared from your PC (e.g. with Tailscale).'),
+      input,
+      h('div.row', { style: { justifyContent: 'flex-end' } },
+        getShelf() ? h('button.btn.alt', { type: 'button', onclick: () => { try { localStorage.removeItem(SHELF_KEY); } catch { /* */ } closeDialog(); library(); } }, 'Disconnect') : null,
+        h('button.btn.go', { type: 'submit' }, 'Connect'))));
+    setTimeout(() => input.focus(), 50);
   }
 
   async function download(url, name, onProgress) {
@@ -102,7 +120,8 @@ export default function gameView(app) {
     });
     const missingSmall = list.filter(g => !installed.has(g.name) && g.size < 8e6);
     box.replaceChildren(
-      h('div.tiny.muted', `From ${new URL(base).host}. Downloads go straight into this device's library.`),
+      h('div.row', h('div.tiny.muted.grow', `From ${new URL(base).host}. Downloads go straight into this device's library.`),
+        h('button.btn.alt.sm', { onclick: connectShelf }, 'Change')),
       missingSmall.length > 1 ? h('button.btn.go.sm', { onclick: async e => {
         e.currentTarget.disabled = true;
         for (const g of missingSmall) {
@@ -138,7 +157,7 @@ export default function gameView(app) {
           h('b.small', r.name), h('div.tiny.muted', `${SYSTEMS[r.system]} · ${(r.size / 1048576).toFixed(1)} MB`)),
         h('button.btn.sm.go', { onclick: () => play(r.id) }, '▶'),
         h('button.btn.sm.alt', { onclick: () => remove(r) }, '🗑')))),
-      getShelf() ? [h('h3', '📡 PC shelf'), shelfBox] : null,
+      getShelf() ? [h('h3', '📡 PC shelf'), shelfBox] : h('button.btn.alt.sm', { onclick: connectShelf }, '📡 Connect a PC shelf'),
       h('h3', 'Pokédex link'),
       h('div.tiny.muted', 'Red, Blue, Yellow, Gold, Silver and Crystal (English / international carts) sync automatically each time you save in-game: your in-game Pokédex marks and your party come over here, ready to raise as buddies. DS games play but don’t sync.'),
       h('button.btn.alt.sm', { onclick: () => savInput.click() }, '📥 Import a .sav file'),
