@@ -21,6 +21,18 @@
     const post = msg => parent.postMessage(msg, ORIGIN);
     let lastSaveSig = '';
 
+    // debug: forward errors and EmulatorJS's loading status to the app's log
+    const plog = msg => post({ type: 'log', msg: String(msg).slice(0, 1000) });
+    window.addEventListener('error', e => plog(`error: ${e.message} @ ${e.filename}:${e.lineno}`));
+    window.addEventListener('unhandledrejection', e => plog(`unhandled: ${e.reason?.message || e.reason}`));
+    const origErr = console.error.bind(console);
+    console.error = (...a) => { plog('console.error: ' + a.map(x => x?.message || String(x)).join(' ')); origErr(...a); };
+    let lastStatus = '';
+    setInterval(() => {
+      const t = document.querySelector('.ejs_loading_text, .ejs_start_button')?.textContent?.trim();
+      if (t && t !== lastStatus) { lastStatus = t; plog(`status: ${t}`); }
+    }, 1000);
+
     function sig(u8) {
       let h = u8.length;
       for (let i = 0; i < u8.length; i += 7) h = (h * 31 + u8[i]) | 0;
@@ -76,7 +88,10 @@
         post({ type: 'started' });
         setInterval(flush, 10000);
       };
+      plog(`boot: core=${core} rom=${m.rom?.name} ${m.rom?.size} bytes save=${m.save ? m.save.length : 0}`);
       const s = document.createElement('script');
+      s.onload = () => plog('loader.js loaded');
+      s.onerror = () => plog('loader.js FAILED to load (no internet / CDN blocked?)');
       s.src = window.EJS_pathtodata + 'loader.js';
       document.body.append(s);
     }

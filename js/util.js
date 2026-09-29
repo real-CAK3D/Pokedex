@@ -94,21 +94,24 @@ export const angleDiff = (a, b) => ((a - b + 540) % 360) - 180;
 export const uid =() => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
 const SPRITES = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites';
-export const spriteUrl = (id, shiny) => `${SPRITES}/pokemon/${shiny ? 'shiny/' : ''}${id}.png`;
+// static sprites ship with the app (img/sprites, see tools/fetch-sprites.mjs)
+export const spriteUrl = (id, shiny) => `img/sprites/${shiny ? 'shiny/' : ''}${id}.png`;
 export const animUrl = (id, shiny) => `${SPRITES}/pokemon/other/showdown/${shiny ? 'shiny/' : ''}${id}.gif`;
 export const artUrl = (id, shiny) => `${SPRITES}/pokemon/other/official-artwork/${shiny ? 'shiny/' : ''}${id}.png`;
 export const itemUrl = name => `${SPRITES}/items/${name}.png`;
 
-// <img> that tries the animated sprite first and falls back to the static one.
+// <img> that shows the bundled static sprite straight away, then swaps in the
+// animated one if (and once) it downloads, so a Pokémon is never blank.
 export function monImg(id, { shiny = false, anim = true, cls = '' } = {}) {
   const img = h('img' + (cls ? '.' + cls.split(' ').join('.') : ''), {
-    alt: '', draggable: 'false', loading: 'lazy', decoding: 'async',
+    alt: '', draggable: 'false', decoding: 'async',
   });
-  img.onerror = () => {
-    img.onerror = null;
-    img.src = spriteUrl(id, shiny);
-  };
-  img.src = anim ? animUrl(id, shiny) : spriteUrl(id, shiny);
+  img.src = spriteUrl(id, shiny);
+  if (anim) {
+    const gif = new Image();
+    gif.onload = () => { if (img.isConnected || !img.parentNode) img.src = gif.src; };
+    gif.src = animUrl(id, shiny);
+  }
   return img;
 }
 

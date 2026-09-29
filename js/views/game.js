@@ -5,6 +5,7 @@ import { h } from '../util.js';
 import * as st from '../store.js';
 import { SYSTEMS, systemFor, listRoms, getRom, addRom, deleteRom, unzipRom, getSave, putSave } from '../gamedb.js';
 import { parseSave, applyCare } from '../cart.js';
+import { dlog } from '../debuglog.js';
 import { byId } from '../data.js';
 import { toast, ticker, confirm, flashLed, dialog, closeDialog } from '../ui.js';
 
@@ -108,11 +109,14 @@ export default function gameView(app) {
         btn.disabled = true;
         try {
           const f = await download(base + encodeURIComponent(g.file), g.file, p => (sub.textContent = `Downloading… ${Math.round(p * 100)}%`));
+          dlog(`shelf: downloaded ${g.file} (${f.size} bytes)`);
           await addRom(f, g.system);
+          dlog(`shelf: stored ${g.name}`);
           toast(`Installed ${g.name}`);
           library();
         } catch (e) {
           sub.textContent = `Failed: ${e.message}`;
+          dlog(`shelf: install ${g.file} FAILED: ${e.name}: ${e.message}`);
           btn.disabled = false;
         }
       };
@@ -126,7 +130,7 @@ export default function gameView(app) {
         e.currentTarget.disabled = true;
         for (const g of missingSmall) {
           ticker(`Installing ${g.name}…`);
-          try { await addRom(await download(base + encodeURIComponent(g.file), g.file), g.system); } catch (err) { toast(`${g.name}: ${err.message}`); }
+          try { await addRom(await download(base + encodeURIComponent(g.file), g.file), g.system); } catch (err) { toast(`${g.name}: ${err.message}`); dlog(`shelf: install-all ${g.file} FAILED: ${err.name}: ${err.message}`); }
         }
         toast('Game Boy games installed!');
         library();
@@ -141,7 +145,14 @@ export default function gameView(app) {
 
   async function library() {
     stop();
-    roms = (await listRoms()).sort((a, b) => a.name.localeCompare(b.name));
+    try {
+      roms = (await listRoms()).sort((a, b) => a.name.localeCompare(b.name));
+    } catch (e) {
+      roms = [];
+      dlog(`library: listRoms FAILED: ${e.name}: ${e.message}`);
+      toast(`Game storage error: ${e.message}`);
+    }
+    dlog(`library: ${roms.length} games [${roms.map(r => r.name).join(", ")}]`);
     focus = Math.min(focus, Math.max(0, roms.length - 1));
     const shelfBox = h('div.col');
     renderShelf(shelfBox, new Set(roms.map(r => r.name)));
@@ -182,6 +193,7 @@ export default function gameView(app) {
         toast(`Added ${f.name}`);
       } catch (e) {
         toast(`Couldn't add ${f.name}: ${e.message}`);
+        dlog(`add file ${f.name} FAILED: ${e.name}: ${e.message}`);
       }
     }
     library();
@@ -207,8 +219,15 @@ export default function gameView(app) {
   }
 
   async function play(id) {
-    const rom = await getRom(id);
-    if (!rom) return;
+    dlog(`play: tapped ${id}`);
+    let rom;
+    try { rom = await getRom(id); } catch (e) { dlog(`play: getRom FAILED ${e.name}: ${e.message}`); toast(`Couldn't open game: ${e.message}`); return; }
+    if (!rom) { dlog(`play: ${id} not found in storage`); return; }
+    let started = false;
+    const watchdog = setTimeout(() => { if (!started && frame) dlog(`play: ${rom.name} NOT started after 60s`); }, 60000);
+    addEventListener('message', function onStart(e) {
+      if (e.data?.type === 'started') { started = true; clearTimeout(watchdog); removeEventListener('message', onStart); }
+    });
     playing = rom;
     let save = await getSave(id);
     // hand the care you gave in the Pokédex back to the game's own Pokémon
@@ -238,12 +257,15 @@ export default function gameView(app) {
     onMsg = async e => {
       if (e.source !== frame?.contentWindow || e.origin !== location.origin) return;
       const m = e.data;
+      if (m.type === 'log') { dlog(m.msg, 'player'); return; }
       if (m.type === 'ready') {
+        dlog(`play: player ready, booting ${rom.name} (${rom.system}, blob ${rom.blob?.size} bytes)`);
         frame.contentWindow.postMessage({
           type: 'boot', rom: new File([rom.blob], rom.blob.name || `${rom.id}.${rom.system}`),
           system: rom.system, name: rom.id, save, touch: rom.system === 'nds',
         }, location.origin);
       } else if (m.type === 'started') {
+        dlog(`play: ${rom.name} STARTED`);
         ticker(`▶ ${rom.name}`);
       } else if (m.type === 'save') {
         await putSave(rom.id, m.data);

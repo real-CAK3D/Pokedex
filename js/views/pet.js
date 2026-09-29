@@ -26,6 +26,10 @@ export default function petView(app) {
   let game = null; // active minigame
 
   function mount(el) {
+    // the view object outlives each visit: forget the sprite from last time,
+    // or refresh() thinks it's already on screen and never re-adds it
+    img = null;
+    curSpecies = null;
     sky = h('div.sky', h('div.stars'), h('div.hills'));
     hud = h('div.pet-hud');
     nameEl = h('div.pet-name');

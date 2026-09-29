@@ -3,7 +3,7 @@
 // sits at its compass bearing from you, so turning the phone pans them in and
 // out of view. No camera/compass (e.g. a desktop)? A drawn scene is used and
 // you drag (or use the D-pad) to look around.
-import { h, spriteUrl, animUrl, bearing, angleDiff, clamp } from '../util.js';
+import { h, monImg, bearing, angleDiff, clamp } from '../util.js';
 import { byId } from '../data.js';
 import * as st from '../store.js';
 import { geo, startGeo } from '../geo.js';
@@ -76,8 +76,7 @@ export default function camView(app) {
     for (const sp of spawns) {
       sp.bearing = bearing(geo.pos, sp);
       if (nodes.has(sp.key)) continue;
-      const img = h('img', { src: animUrl(sp.id, sp.shiny), alt: '', draggable: 'false' });
-      img.onerror = () => { img.onerror = null; img.src = spriteUrl(sp.id, sp.shiny); };
+      const img = monImg(sp.id, { shiny: sp.shiny });
       const node = h('button.ar-mon', { onclick: () => tryCatch(sp) },
         h('div.ar-shadow'), img,
         h('div.ar-tag', `${sp.shiny ? '✨' : ''}${byId(sp.id).name} · ${Math.round(sp.dist)}m`));

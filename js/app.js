@@ -1,6 +1,7 @@
 // Boot + router + physical button wiring for the Pokédex device.
 import { $, $$, h } from './util.js';
 import { startCompass } from './camera.js';
+import { installDebugLog } from './debuglog.js';
 import camView from './views/cam.js';
 import { loadDex } from './data.js';
 import * as st from './store.js';
@@ -201,6 +202,9 @@ function wireControls() {
 }
 
 async function boot() {
+  installDebugLog();
+  // ask the browser to keep our storage (ROMs, saves) instead of evicting it
+  navigator.storage?.persist?.().catch(() => {});
   ticker('Loading Pokédex…');
   st.load();
   try {
