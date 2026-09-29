@@ -79,6 +79,19 @@ npx http-server -p 8321      # local testing at http://localhost:8321
 
 On your phone, open the site and use **Add to Home Screen**. It runs full-screen, like a real device, and works offline for anything you've already loaded.
 
+## Android app
+
+The same code is packaged as a native Android app with [Capacitor](https://capacitorjs.com) (`android/`).
+It bundles everything offline and uses native GPS and camera permissions.
+
+```bash
+npm install
+npm run apk        # copies the web app to www/, syncs, builds android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+The build needs `JAVA_HOME` (JDK 21) and `ANDROID_HOME` (SDK with platform 36), plus `android/local.properties` pointing at the SDK.
+On this project's build PC these live in `G:\Android`.
+
 ## Regenerating data
 
 ```bash

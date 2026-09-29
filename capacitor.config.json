@@ -1,0 +1,9 @@
+{
+  "appId": "io.github.realcak3d.pokedex",
+  "appName": "Pokédex",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#14161f",
+    "allowMixedContent": false
+  }
+}

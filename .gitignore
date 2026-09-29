@@ -9,3 +9,9 @@ Thumbs.db
 *.sav
 *.zip
 *.7z
+www/
+android/app/build/
+android/.gradle/
+android/build/
+*.apk
+*.keystore

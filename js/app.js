@@ -246,7 +246,8 @@ async function boot() {
   });
   window.addEventListener('pagehide', st.save);
 
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  // the Android app already ships everything offline; the SW is for the website
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !window.Capacitor?.isNativePlatform?.()) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 }
