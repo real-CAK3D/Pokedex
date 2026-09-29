@@ -226,7 +226,14 @@ async function boot() {
 
   let start = 'pet';
   try { start = sessionStorage.getItem('tab') || 'pet'; } catch { /* ignore */ }
-  app.go(start);
+  const q = new URLSearchParams(location.search);
+  const link = q.get('addrom') || q.get('shelf') ? { addrom: q.get('addrom'), shelf: q.get('shelf') } : null;
+  if (link) history.replaceState(null, '', location.pathname);
+  if (link && st.S().mons.length) app.go('game', link);
+  else {
+    app.pendingRom = link; // opened right after the starter is chosen
+    app.go(start);
+  }
   statusInfo();
 
   // resume GPS straight away if the user already granted it before

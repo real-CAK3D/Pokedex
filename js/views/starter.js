@@ -36,7 +36,11 @@ export default function starterView(app) {
     st.giveEgg();
     st.log(`Chose ${byId(id).name} as a partner. Received an egg!`);
     st.emit();
-    app.go('pet');
+    if (app.pendingRom) {
+      const link = app.pendingRom;
+      app.pendingRom = null;
+      app.go('game', link);
+    } else app.go('pet');
   }
 
   function key(k) {

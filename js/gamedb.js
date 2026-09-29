@@ -26,11 +26,11 @@ async function tx(store, mode, fn) {
   });
 }
 
-export const SYSTEMS = { gb: 'Game Boy', gbc: 'Game Boy Color', gba: 'Game Boy Advance', nds: 'Nintendo DS' };
+export const SYSTEMS = { gb: 'Game Boy', gbc: 'Game Boy Color', gba: 'Game Boy Advance', nds: 'Nintendo DS', n64: 'Nintendo 64' };
 
 export function systemFor(name) {
   const ext = name.toLowerCase().split('.').pop();
-  return { gb: 'gb', gbc: 'gbc', sgb: 'gb', gba: 'gba', nds: 'nds' }[ext] || null;
+  return { gb: 'gb', gbc: 'gbc', sgb: 'gb', gba: 'gba', nds: 'nds', z64: 'n64', n64: 'n64', v64: 'n64' }[ext] || null;
 }
 
 // Pull the first ROM out of a .zip (stored or deflate) using the browser's
