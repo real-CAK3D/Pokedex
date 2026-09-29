@@ -10,7 +10,7 @@ import { toast, ticker, confirm, flashLed } from '../ui.js';
 
 // RetroArch joypad ids
 const PAD = { b: 0, select: 2, start: 3, up: 4, down: 5, left: 6, right: 7, a: 8, l: 10, r: 11 };
-const ICON = { gb: '🟩', gbc: '🟪', gba: '🟦', nds: '⬛', n64: '🕹️' };
+const ICON = { gb: '🟩', gbc: '🟪', gba: '🟦', nds: '⬛' };
 
 export default function gameView(app) {
   let root, roms = [], focus = 0, playing = null, frame = null, onMsg = null;
@@ -126,7 +126,7 @@ export default function gameView(app) {
     focus = Math.min(focus, Math.max(0, roms.length - 1));
     const shelfBox = h('div.col');
     renderShelf(shelfBox, new Set(roms.map(r => r.name)));
-    const input = h('input', { type: 'file', accept: '.gb,.gbc,.gba,.nds,.z64,.n64,.v64,.zip', multiple: true, style: { display: 'none' }, onchange: e => addFiles([...e.target.files]) });
+    const input = h('input', { type: 'file', accept: '.gb,.gbc,.gba,.nds,.zip', multiple: true, style: { display: 'none' }, onchange: e => addFiles([...e.target.files]) });
     const savInput = h('input', { type: 'file', accept: '.sav,.srm,.dat', style: { display: 'none' }, onchange: e => importSav(e.target.files[0]) });
     root.replaceChildren(h('div.scroll', h('div.pad.col',
       h('div.row', h('h2.grow', 'Game Library'), h('button.btn.go.sm', { onclick: () => input.click() }, '＋ Add game'), input),
@@ -202,7 +202,7 @@ export default function gameView(app) {
         toast('💝 Your care paid off: ' + patched.changed.map(c => `${byId(c.id).name} +${c.exp.toLocaleString()} EXP`).join(', '), 5000);
       }
     }
-    const aspect = { gb: '10 / 9', gbc: '10 / 9', gba: '3 / 2', nds: '2 / 3', n64: '4 / 3' }[rom.system];
+    const aspect = { gb: '10 / 9', gbc: '10 / 9', gba: '3 / 2', nds: '2 / 3' }[rom.system];
     frame = h('iframe', { src: 'games/player.html', title: rom.name, allow: 'autoplay; fullscreen; gamepad', style: { aspectRatio: aspect, maxWidth: '100%', maxHeight: '100%', width: rom.system === 'nds' ? 'auto' : '100%', height: rom.system === 'nds' ? '100%' : 'auto', border: '0', background: '#000' } });
     const stage = h('div.game-stage', frame);
     const pill = (label, k) => h('button.btn.sm', {
@@ -211,7 +211,7 @@ export default function gameView(app) {
     }, label);
     const bar = h('div.game-bar',
       h('button.btn.sm.alt', { onclick: () => library() }, '✕'),
-      rom.system === 'gba' || rom.system === 'nds' || rom.system === 'n64' ? [pill('L', 'l'), pill('R', 'r')] : null,
+      rom.system === 'gba' || rom.system === 'nds' ? [pill('L', 'l'), pill('R', 'r')] : null,
       h('span.tiny', { style: { color: '#9ab', alignSelf: 'center' } }, 'Red pill = SELECT · Blue pill = START'),
       isCart(rom) ? h('button.btn.sm.gold', { onclick: () => frame?.contentWindow?.postMessage({ type: 'flush' }, location.origin) }, '◓ Sync') : null,
     );
@@ -222,7 +222,7 @@ export default function gameView(app) {
       if (m.type === 'ready') {
         frame.contentWindow.postMessage({
           type: 'boot', rom: new File([rom.blob], rom.blob.name || `${rom.id}.${rom.system}`),
-          system: rom.system, name: rom.id, save, touch: rom.system === 'nds' || rom.system === 'n64',
+          system: rom.system, name: rom.id, save, touch: rom.system === 'nds',
         }, location.origin);
       } else if (m.type === 'started') {
         ticker(`▶ ${rom.name}`);
