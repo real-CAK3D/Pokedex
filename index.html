@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#c8102e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="A real-life Pokédex: catch Pokémon around you, then raise them TamaPoke-style inside the Pokédex screen.">
+  <title>Pokédex</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="img/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="img/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <div class="device" id="device">
+    <div class="hinge"><i></i><i></i></div>
+
+    <header class="top">
+      <button class="lens" id="lens" aria-label="Scan nearby"><span class="glare"></span></button>
+      <div class="leds">
+        <i class="led red" id="led-care" title="Buddy needs care"></i>
+        <i class="led yellow" id="led-egg" title="Egg ready to hatch"></i>
+        <i class="led green" id="led-gps" title="GPS signal"></i>
+      </div>
+      <div class="wordmark">POKéDEX</div>
+    </header>
+
+    <div class="bezel">
+      <div class="bezel-dots"><i></i><i></i></div>
+      <div class="screen" id="screen">
+        <div class="statusbar">
+          <span id="sb-title">PET</span>
+          <span id="sb-info"></span>
+        </div>
+        <div class="view" id="view"></div>
+        <div class="overlay" id="overlay" hidden></div>
+        <div class="toasts" id="toasts"></div>
+      </div>
+      <div class="bezel-foot">
+        <i class="bezel-led" id="bezel-led"></i>
+        <div class="speaker"><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <nav class="tabs" id="tabs">
+        <button data-tab="pet">PET</button>
+        <button data-tab="dex">DEX</button>
+        <button data-tab="map">MAP</button>
+        <button data-tab="box">BOX</button>
+        <button data-tab="bag">BAG</button>
+      </nav>
+      <div class="pad-row">
+        <div class="dpad" id="dpad">
+          <button data-key="up" aria-label="Up"></button>
+          <button data-key="left" aria-label="Left"></button>
+          <span class="dpad-center"></span>
+          <button data-key="right" aria-label="Right"></button>
+          <button data-key="down" aria-label="Down"></button>
+        </div>
+        <div class="lcd" id="ticker">Booting…</div>
+        <div class="ab">
+          <button data-key="b" class="btn-b" aria-label="B / Back">B</button>
+          <button data-key="a" class="btn-a" aria-label="A / Confirm">A</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <noscript>This Pokédex needs JavaScript.</noscript>
+</body>
+</html>
